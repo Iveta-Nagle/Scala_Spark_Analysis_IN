@@ -1,13 +1,25 @@
 package com.analysis
 
+import org.apache.spark
 import org.apache.spark.sql.SparkSession
 
 object StockAnalysis extends App {
-  println(s"Testing Scala version: ${util.Properties.versionNumberString}")
 
-  println("Testing")
-  val spark = SparkSession.builder().appName("test").master("local").getOrCreate()
-  //session is also commonly used instead of spark as a value name
-  println(s"Session started on Spark version ${spark.version}")
+  val filePath = "./src/resources/stock_prices.csv"
+
+  val spark = SparkUtil.createSpark("stockAnalysis")
+
+  val df = spark.read.format("csv")
+    .option("header", "true")
+    .option("inferSchema", "true")
+    .load(filePath)
+
+  df.printSchema()
+  df.describe().show(false)
+  df.show()
+
+
+
+
 
 }
