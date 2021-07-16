@@ -1,7 +1,8 @@
 package com.analysis
 
-import org.apache.spark
-import org.apache.spark.sql.SparkSession
+
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{col, lag, mean}
 
 object StockAnalysis extends App {
 
@@ -16,10 +17,18 @@ object StockAnalysis extends App {
 
   df.printSchema()
   df.describe().show(false)
-  df.show()
+  df.orderBy(col("date")).show(20)
 
+  val windowSpec = Window
+    .partitionBy( "ticker")
+    .orderBy(col("date"))
 
+  val dateAverageReturn = ((col("close") - lag("close", 1).over(windowSpec)) / lag("close", 1).over(windowSpec)) * 100.00
 
+  df.withColumn("date_average_return", dateAverageReturn)
+    //.where(col("ticker") === "GOOG")
+    .orderBy(col("date"))
+    .show(20)
 
 
 }
