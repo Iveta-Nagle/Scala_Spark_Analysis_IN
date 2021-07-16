@@ -2,7 +2,7 @@ package com.analysis
 
 
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions.{col, lag, mean}
+import org.apache.spark.sql.functions.{col, lag}
 
 object StockAnalysis extends App {
 
