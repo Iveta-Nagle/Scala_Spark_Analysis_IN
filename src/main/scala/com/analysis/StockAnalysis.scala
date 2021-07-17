@@ -2,7 +2,12 @@ package com.analysis
 
 
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions.{col, lag}
+import org.apache.spark.sql.functions
+import org.apache.spark.sql.functions.{col, lag, sum}
+import org.apache.spark.sql.types.LongType
+
+
+import scala.language.postfixOps
 
 object StockAnalysis extends App {
 
@@ -22,6 +27,7 @@ object StockAnalysis extends App {
   val windowSpec = Window
     .partitionBy( "ticker")
     .orderBy(col("date"))
+
 
   val dateAverageReturn = ((col("close") - lag("close", 1).over(windowSpec)) / lag("close", 1).over(windowSpec)) * 100.00
 
@@ -48,6 +54,25 @@ object StockAnalysis extends App {
     .mode("overwrite")
     .option("header", "true")
     .save(csvFilePath)
+
+
+  val stockSpec = Window
+    .partitionBy( "ticker")
+    .orderBy(col("date"))
+    .rowsBetween(Window.unboundedPreceding, Window.currentRow)
+
+
+  val frequency = col("close") * functions.avg("volume").over(stockSpec)
+
+
+  println("Most frequently traded stocks:")
+
+  df
+    .withColumn("frequency", frequency.cast(LongType))
+    .groupBy("ticker")
+    .agg(sum("frequency"))
+    .orderBy(col("sum(frequency)")desc)
+    .show(20, false)
 
 
 }
