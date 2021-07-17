@@ -25,10 +25,16 @@ object StockAnalysis extends App {
 
   val dateAverageReturn = ((col("close") - lag("close", 1).over(windowSpec)) / lag("close", 1).over(windowSpec)) * 100.00
 
-  df.withColumn("date_average_return", dateAverageReturn)
-    //.where(col("ticker") === "GOOG")
+  val ndf = df.withColumn("date_average_return", dateAverageReturn)
     .orderBy(col("date"))
-    .show(20)
 
+  ndf.show(10)
+
+  val parquetFilePath = "./src/resources/parquet/stock_returns"
+
+  ndf.write
+    .format("parquet")
+    .mode("overwrite")
+    .save(parquetFilePath)
 
 }
