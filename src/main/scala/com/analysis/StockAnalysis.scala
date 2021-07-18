@@ -3,9 +3,8 @@ package com.analysis
 
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions
-import org.apache.spark.sql.functions.{col, lag, sum}
+import org.apache.spark.sql.functions.{avg, col, lag, round, stddev, sum, to_date, year}
 import org.apache.spark.sql.types.LongType
-
 
 import scala.language.postfixOps
 
@@ -65,14 +64,31 @@ object StockAnalysis extends App {
   val frequency = col("close") * functions.avg("volume").over(stockSpec)
 
 
-  println("Most frequently traded stocks:")
+  println("Most frequently traded stocks (closing price * avg volume):")
 
   df
     .withColumn("frequency", frequency.cast(LongType))
     .groupBy("ticker")
     .agg(sum("frequency"))
     .orderBy(col("sum(frequency)")desc)
-    .show(20, false)
+    .show(20, truncate = false)
 
+
+  //https://financetrain.com/calculate-annualized-standard-deviation/
+  //Annualized Standard Deviation = Standard Deviation of Daily Returns * Square Root (trading days in the year)
+
+  val sqrt = math.sqrt(252)
+
+  println("The most volatile stocks:")
+
+  ndf.withColumn("year", year(to_date(col("date"), "yyyy-MM-dd")))
+    .groupBy("year", "ticker")
+    .agg(
+      avg(col("date_average_return")),
+      stddev(col("date_average_return")),
+    )
+    .withColumn("Annualized Volatility", round(col("stddev_samp(date_average_return)") * sqrt,2))
+    .orderBy(col("Annualized Volatility").desc)
+    .show(20, truncate = false)
 
 }
