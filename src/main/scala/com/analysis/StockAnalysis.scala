@@ -30,10 +30,10 @@ object StockAnalysis extends App {
 
   val dateAverageReturn = ((col("close") - lag("close", 1).over(windowSpec)) / lag("close", 1).over(windowSpec)) * 100.00
 
-  val ndf = df.withColumn("date_average_return", dateAverageReturn)
+  val ndf = df.withColumn("date_average_return", round(dateAverageReturn,2))
               .orderBy(col("date"))
 
-  ndf.show(10)
+  ndf.show(20)
 
   val parquetFilePath = "./src/resources/parquet/stock_returns"
 
@@ -87,8 +87,11 @@ object StockAnalysis extends App {
       avg(col("date_average_return")),
       stddev(col("date_average_return")),
     )
-    .withColumn("Annualized Volatility", round(col("stddev_samp(date_average_return)") * sqrt,2))
-    .orderBy(col("Annualized Volatility").desc)
+    .withColumn("annualized_volatility", round(col("stddev_samp(date_average_return)") * sqrt,2))
+    .orderBy(col("annualized_volatility").desc)
     .show(20, truncate = false)
+
+
+
 
 }
