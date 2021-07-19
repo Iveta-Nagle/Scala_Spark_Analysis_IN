@@ -39,6 +39,7 @@ object StockAnalysis extends App {
 
   ndf.na
     .drop
+    .coalesce(1)
     .write
     .format("parquet")
     .mode("overwrite")
@@ -48,6 +49,7 @@ object StockAnalysis extends App {
 
   ndf.na
     .drop
+    .coalesce(1)
     .write
     .format("csv")
     .mode("overwrite")
