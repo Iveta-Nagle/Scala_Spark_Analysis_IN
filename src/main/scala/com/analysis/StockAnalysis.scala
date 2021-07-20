@@ -2,7 +2,7 @@ package com.analysis
 
 
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions
+import org.apache.spark.sql.{DataFrame, functions}
 import org.apache.spark.sql.functions.{avg, col, round, stddev, sum, to_date, year}
 import org.apache.spark.sql.types.LongType
 
@@ -38,26 +38,21 @@ object StockAnalysis extends App {
   println("Return of all stocks by date:")
   ndf.show(20)
 
-  val parquetFilePath = "./src/resources/parquet/stock_returns"
+  def writeFile(df: DataFrame, filePath: String, fileFormat: String, header: Boolean): Unit = {
+    df
+      .coalesce(1)
+      .write
+      .format(fileFormat)
+      .mode("overwrite")
+      .option("header", header)
+      .save(filePath)
+  }
 
-  ndf.na
-    .drop
-    .coalesce(1)
-    .write
-    .format("parquet")
-    .mode("overwrite")
-    .save(parquetFilePath)
+  val parquetFilePath = "./src/resources/parquet/stock_returns"
+  writeFile(ndf,parquetFilePath,"parquet", header = false)
 
   val csvFilePath = "./src/resources/csv/stock_returns"
-
-  ndf.na
-    .drop
-    .coalesce(1)
-    .write
-    .format("csv")
-    .mode("overwrite")
-    .option("header", "true")
-    .save(csvFilePath)
+  writeFile(ndf, csvFilePath, "csv", header = true)
 
 
   val stockSpec = Window
