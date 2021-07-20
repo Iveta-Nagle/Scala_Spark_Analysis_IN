@@ -55,6 +55,10 @@ object StockAnalysis extends App {
   writeFile(ndf, csvFilePath, "csv", header = true)
 
 
+  //will be needed for regression
+  val csvFilePath2 = "./src/resources/csv/stock_returns_tickers"
+  writeFile(dfWithReturn, csvFilePath2, "csv", header = true)
+
   val stockSpec = Window
     .partitionBy( "ticker")
     .orderBy(col("date"))
