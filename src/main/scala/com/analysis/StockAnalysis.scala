@@ -3,7 +3,7 @@ package com.analysis
 
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions
-import org.apache.spark.sql.functions.{avg, col, lag, round, stddev, sum, to_date, year}
+import org.apache.spark.sql.functions.{avg, col, round, stddev, sum, to_date, year}
 import org.apache.spark.sql.types.LongType
 
 import scala.language.postfixOps
@@ -23,16 +23,19 @@ object StockAnalysis extends App {
   df.describe().show(false)
   df.orderBy(col("date")).show(20)
 
-  val windowSpec = Window
-    .partitionBy( "ticker")
-    .orderBy(col("date"))
 
+  val dfWithReturn = df
+  .withColumn("return", round((col("close") - col("open"))/col("open")*100,2))
 
-  val dateAverageReturn = ((col("close") - lag("close", 1).over(windowSpec)) / lag("close", 1).over(windowSpec)) * 100.00
+  println("Stocks with daily return:")
+  dfWithReturn.show(20)
 
-  val ndf = df.withColumn("date_average_return", round(dateAverageReturn,2))
+  val ndf = dfWithReturn
+              .groupBy("date")
+              .agg(round(avg("return"),2).alias("daily_return"))
               .orderBy(col("date"))
 
+  println("Return of all stocks by date:")
   ndf.show(20)
 
   val parquetFilePath = "./src/resources/parquet/stock_returns"
@@ -68,7 +71,7 @@ object StockAnalysis extends App {
 
   println("Most frequently traded stocks (closing price * avg volume):")
 
-  df
+  dfWithReturn
     .withColumn("frequency", frequency.cast(LongType))
     .groupBy("ticker")
     .agg(sum("frequency"))
@@ -79,17 +82,21 @@ object StockAnalysis extends App {
   //https://financetrain.com/calculate-annualized-standard-deviation/
   //Annualized Standard Deviation = Standard Deviation of Daily Returns * Square Root (trading days in the year)
 
+
+  //https://en.wikipedia.org/wiki/Trading_day
+  //"There are exactly 252 trading days in 2016"
+  // "The NYSE and NASDAQ average about 253 trading days a year"
   val sqrt = math.sqrt(252)
 
   println("The most volatile stocks:")
 
-  ndf.withColumn("year", year(to_date(col("date"), "yyyy-MM-dd")))
+  dfWithReturn.withColumn("year", year(to_date(col("date"), "yyyy-MM-dd")))
     .groupBy("year", "ticker")
     .agg(
-      avg(col("date_average_return")),
-      stddev(col("date_average_return")),
+      avg(col("return")),
+      stddev(col("return")),
     )
-    .withColumn("annualized_volatility", round(col("stddev_samp(date_average_return)") * sqrt,2))
+    .withColumn("annualized_volatility", round(col("stddev_samp(return)") * sqrt,2))
     .orderBy(col("annualized_volatility").desc)
     .show(20, truncate = false)
 
