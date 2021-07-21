@@ -1,6 +1,6 @@
-package com.analysis
+package com.github.ivetan
 
-
+import com.github.ivetan.Utilities.writeFile
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{DataFrame, functions}
 import org.apache.spark.sql.functions.{avg, col, round, stddev, sum, to_date, year}
@@ -12,7 +12,7 @@ object StockAnalysis extends App {
 
   val filePath = "./src/resources/stock_prices.csv"
 
-  val spark = SparkUtil.createSpark("stockAnalysis")
+  val spark = Utilities.createSpark("stockAnalysis")
 
   val df = spark.read.format("csv")
     .option("header", "true")
@@ -38,15 +38,7 @@ object StockAnalysis extends App {
   println("Return of all stocks by date:")
   ndf.show(20)
 
-  def writeFile(df: DataFrame, filePath: String, fileFormat: String, header: Boolean): Unit = {
-    df
-      .coalesce(1)
-      .write
-      .format(fileFormat)
-      .mode("overwrite")
-      .option("header", header)
-      .save(filePath)
-  }
+
 
   val parquetFilePath = "./src/resources/parquet/stock_returns"
   writeFile(ndf,parquetFilePath,"parquet", header = false)
@@ -55,7 +47,9 @@ object StockAnalysis extends App {
   writeFile(ndf, csvFilePath, "csv", header = true)
 
 
-  //will be needed for regression
+  /** Writes data with daily returns by every ticker in CSV file.
+   * Will be used for regression in ML.
+   */
   val csvFilePath2 = "./src/resources/csv/stock_returns_tickers"
   writeFile(dfWithReturn, csvFilePath2, "csv", header = true)
 
@@ -78,24 +72,27 @@ object StockAnalysis extends App {
     .show(20, truncate = false)
 
 
-  //https://financetrain.com/calculate-annualized-standard-deviation/
-  //Annualized Standard Deviation = Standard Deviation of Daily Returns * Square Root (trading days in the year)
-
-
-  //https://en.wikipedia.org/wiki/Trading_day
-  //"There are exactly 252 trading days in 2016"
-  // "The NYSE and NASDAQ average about 253 trading days a year"
+  /**  Calculates square root from trading days in the year.
+   * There are exactly 252 trading days in 2016.
+   * The NYSE and NASDAQ average about 253 trading days a year.
+   * @see See https://en.wikipedia.org/wiki/Trading_day
+   */
   val sqrt = math.sqrt(252)
 
   println("The most volatile stocks:")
 
+  /**  Finds volatility (standard deviation) of stocks.
+   * Split dates in years.
+   * Calculates annualized standard deviation = Standard Deviation of Daily Returns * Square Root (trading days in the year)
+   * @see See https://financetrain.com/calculate-annualized-standard-deviation/
+   */
   dfWithReturn.withColumn("year", year(to_date(col("date"), "yyyy-MM-dd")))
     .groupBy("year", "ticker")
     .agg(
-      avg(col("return")),
-      stddev(col("return")),
+      round(avg("return"),2).alias("average_return"),
+      round(stddev("return"),2).alias("stddev"),
     )
-    .withColumn("annualized_volatility", round(col("stddev_samp(return)") * sqrt,2))
+    .withColumn("annualized_volatility", round(col("stddev") * sqrt,2))
     .orderBy(col("annualized_volatility").desc)
     .show(20, truncate = false)
 

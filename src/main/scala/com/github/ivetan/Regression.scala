@@ -1,4 +1,4 @@
-package com.analysis
+package com.github.ivetan
 
 import org.apache.spark.ml.feature.RFormula
 import org.apache.spark.ml.regression.LinearRegression
@@ -8,7 +8,7 @@ import org.apache.spark.sql.functions.{col, expr, round}
 
 object Regression extends App {
 
-  val spark = SparkUtil.createSpark("ML")
+  val spark = Utilities.createSpark("ML")
   val filePath = "./src/resources/csv/stock_returns_tickers"
 
   val csvDF = spark
