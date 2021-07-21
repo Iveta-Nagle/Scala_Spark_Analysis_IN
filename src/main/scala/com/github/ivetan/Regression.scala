@@ -69,36 +69,38 @@ object Regression extends App {
   val x1 = coefficients(0)
   val x2 = coefficients(1)
 
-  println(s"Intercept: $intercept and coefficient for x1 is $x1 and for x2 is $x2")
+  println(s"Intercept: $intercept and coefficient for x1 is $x1 and for x2 is $x2 \n")
 
   val summary = lrModel.summary
-
 
   /** Residuals are the differences between observed and predicted values of data.
    * They are a diagnostic measure used when assessing the quality of a model.
    * They are also known as errors.
    */
-  summary.residuals.show()
-
+  val residuals = summary.residuals
+  println("Residuals:")
+  residuals.show()
 
   /** The square root of the mean of the square of all of the error.
    */
-  println(s"Root mean squared error (RMSE) is ${summary.rootMeanSquaredError} \n")
+  val rmse = summary.rootMeanSquaredError
+  println(s"Root mean squared error is $rmse \n")
 
 
   /** R-squared is a statistical measure that represents the goodness of fit of a regression model.
    * The more the value of r-square near to 1, the better is the model.
    */
-  println(s"R-squared (R2) is ${summary.r2} \n")
+  val r2 = summary.r2
+  println(s"R-squared is $r2 \n")
 
 
   /** Variance is a measure of how far observed values differ from the average of predicted values,
    * i.e., their difference from the predicted value mean.
    */
-  println(s"Explained variance is ${summary.explainedVariance} \n")
+  val variance = summary.explainedVariance
+  println(s"Explained variance is $variance \n")
 
   val predictedDf = lrModel.transform(test)
   predictedDf.show(10, truncate = false)
-
 
 }
