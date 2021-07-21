@@ -22,6 +22,9 @@ object Regression extends App {
   csvDF.describe().show(false)
   csvDF.show(10,truncate = false)
 
+
+  /** Prepares window for getting average close price for last 30 days.
+   */
   val stockSpec = Window
     .partitionBy( "ticker")
     .orderBy(col("date"))
@@ -29,6 +32,8 @@ object Regression extends App {
 
   val avgClosePrice = functions.avg("close").over(stockSpec)
 
+  /** Gets previous day open and close price for each stock.
+   */
   val newDf= csvDF.withColumn("prevOpen", expr("" +
     "LAG (open,1,0) " +
     "OVER (PARTITION BY ticker " +
@@ -68,20 +73,28 @@ object Regression extends App {
 
   val summary = lrModel.summary
 
-  //Residuals are the differences between observed and predicted values of data.
-  //They are a diagnostic measure used when assessing the quality of a model.
-  //They are also known as errors.
+
+  /** Residuals are the differences between observed and predicted values of data.
+   * They are a diagnostic measure used when assessing the quality of a model.
+   * They are also known as errors.
+   */
   summary.residuals.show()
 
-  //the square root of the mean of the square of all of the error.
+
+  /** The square root of the mean of the square of all of the error.
+   */
   println(s"Root mean squared error (RMSE) is ${summary.rootMeanSquaredError} \n")
 
-  //R-squared is a statistical measure that represents the goodness of fit of a regression model.
-  // The more the value of r-square near to 1, the better is the model.
+
+  /** R-squared is a statistical measure that represents the goodness of fit of a regression model.
+   * The more the value of r-square near to 1, the better is the model.
+   */
   println(s"R-squared (R2) is ${summary.r2} \n")
 
-  //Variance is a measure of how far observed values differ from the average of predicted values,
-  // i.e., their difference from the predicted value mean.
+
+  /** Variance is a measure of how far observed values differ from the average of predicted values,
+   * i.e., their difference from the predicted value mean.
+   */
   println(s"Explained variance is ${summary.explainedVariance} \n")
 
   val predictedDf = lrModel.transform(test)

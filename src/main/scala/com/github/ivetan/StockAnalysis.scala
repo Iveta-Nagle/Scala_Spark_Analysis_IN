@@ -23,13 +23,16 @@ object StockAnalysis extends App {
   df.describe().show(false)
   df.orderBy(col("date")).show(20)
 
-
+  /** Calculates daily return per stock.
+   */
   val dfWithReturn = df
   .withColumn("return", round((col("close") - col("open"))/col("open")*100,2))
 
   println("Stocks with daily return:")
   dfWithReturn.show(20)
 
+  /** Calculates daily return by all stockes per date.
+   */
   val ndf = dfWithReturn
               .groupBy("date")
               .agg(round(avg("return"),2).alias("daily_return"))
@@ -38,11 +41,13 @@ object StockAnalysis extends App {
   println("Return of all stocks by date:")
   ndf.show(20)
 
-
-
+  /** Writes parquet file with return of all stocks per date.
+   */
   val parquetFilePath = "./src/resources/parquet/stock_returns"
   writeFile(ndf,parquetFilePath,"parquet", header = false)
 
+  /** Writes CSV file with return of all stocks per date.
+   */
   val csvFilePath = "./src/resources/csv/stock_returns"
   writeFile(ndf, csvFilePath, "csv", header = true)
 
@@ -53,16 +58,19 @@ object StockAnalysis extends App {
   val csvFilePath2 = "./src/resources/csv/stock_returns_tickers"
   writeFile(dfWithReturn, csvFilePath2, "csv", header = true)
 
+
+  /** Prepares window for getting average volume for last 20 days.
+   * Will be used for frequency calculation.
+   * @see See https://www.investopedia.com/terms/a/averagedailytradingvolume.asp
+   */
   val stockSpec = Window
     .partitionBy( "ticker")
     .orderBy(col("date"))
-    .rowsBetween(Window.unboundedPreceding, Window.currentRow)
-
+    .rowsBetween(-20, Window.currentRow)
 
   val frequency = col("close") * functions.avg("volume").over(stockSpec)
-
-
   println("Most frequently traded stocks (closing price * avg volume):")
+
 
   dfWithReturn
     .withColumn("frequency", frequency.cast(LongType))
